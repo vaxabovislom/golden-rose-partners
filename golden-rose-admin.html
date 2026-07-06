@@ -292,12 +292,21 @@ async function ghGet(){
   if(!r.ok) throw new Error('Ошибка чтения GitHub: '+r.status);
   const j = await r.json();
   fileSha = j.sha;
-  return JSON.parse(atob(j.content.replace(/\n/g,'')));
+  // Proper base64 to UTF-8 decoding
+  const binary = atob(j.content.replace(/\n/g,''));
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+  return JSON.parse(new TextDecoder('utf-8').decode(bytes));
 }
 
 async function ghSave(data){
   setSS('saving','Сохранение...');
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  // Proper UTF-8 to base64 for Cyrillic/Unicode text
+  const jsonStr = JSON.stringify(data, null, 2);
+  const bytes = new TextEncoder().encode(jsonStr);
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  const content = btoa(binary);
   const r = await fetch(API(),{method:'PUT',headers:{Authorization:'token '+TOKEN,'Content-Type':'application/json'},
     body:JSON.stringify({message:'Update products',content,sha:fileSha})});
   if(!r.ok){const e=await r.json();throw new Error(e.message||r.status);}
