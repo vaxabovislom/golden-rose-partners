@@ -195,14 +195,22 @@ footer em{color:var(--gold);font-style:normal}
 <footer>© 2025 <em id="d-brand">Golden Rose Uzbekistan</em> — Официальный дистрибьютор</footer>
 
 <script>
-const DATA_URL = 'https://raw.githubusercontent.com/vaxabovislom/golden-rose-partners/main/data.json';
+const API_URL = 'https://api.github.com/repos/vaxabovislom/golden-rose-partners/contents/data.json';
 
 function fmt(n){ return Number(n).toLocaleString('ru'); }
 
 async function loadData(){
-  const r = await fetch(DATA_URL + '?t=' + Date.now());
+  const r = await fetch(API_URL + '?t=' + Date.now(), {
+    headers: { 'Accept': 'application/vnd.github.v3+json' }
+  });
   if(!r.ok) throw new Error('Ошибка загрузки данных');
-  return await r.json();
+  const j = await r.json();
+  // Decode base64 with proper UTF-8 support
+  const binary = atob(j.content.replace(/
+/g, ''));
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+  return JSON.parse(new TextDecoder('utf-8').decode(bytes));
 }
 
 function applySettings(s){
